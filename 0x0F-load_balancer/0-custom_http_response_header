@@ -1,15 +1,27 @@
 #!/usr/bin/env bash
-# Configure Nginx so that its HTTP response contains a custom header
-# HTTP response contains a custom header (on web-01 and web-02)
-var=$(hostname)
-new_string="error_page 404 \/custom_404.html;\n location \/redirect_me {\n return 301 \$scheme:\/\/www.google.com;"
-new_string2="server {\n\tadd_header X-Served-By $var;"
+#Install nginx web server
+sudo apt-get update && sudo apt-get install nginx
 
-apt-get update -y
-apt-get install nginx -y
-echo "Hello World!" > /usr/share/nginx/html/index.html
-mkdir -p /var/www/html
-echo "Ceci n'est pas une page" > /var/www/html/custom_404.html
-sudo sed -i -E "s/^[^#]+location \/ \{/$new_string/" /etc/nginx/sites-available/default
-sudo sed -i -E "s/^server \{/$new_string2/" /etc/nginx/sites-available/default
+# Start nginx service
 sudo service nginx start
+
+# Create index.html with "Hello World!"
+sudo touch /var/www/html/index.html
+sudo chmod 666 /var/www/html/index.html
+echo "Hello World!" > /var/www/html/index.html
+
+# Update Nginx configuration to add redirection
+sudo sed -i '/^}$/i \ \n\trewrite ^/redirect_me https:\/\/www.youtube.com\/watch?v=QH2-TGUlwu4 permanent;' /etc/nginx/sites-available/default
+
+# Create custom 404 error page
+sudo touch /var/www/html/404.html
+echo "Ceci n'est pas une page" | sudo tee /var/www/html/404.html
+
+# Update Nginx configuration to use custom 404 error page
+sudo sed -i '/^}$/i \ \n\terror_page 404 /404.html;\n\n\tlocation /404.html {\n\t\tinternal;\n\t}' /etc/nginx/sites-available/default
+
+# Test Nginx configuration for syntax errors
+sudo nginx -t
+
+# Restart Nginx to apply changes
+service nginx restart
